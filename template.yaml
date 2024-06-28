@@ -1,0 +1,210 @@
+# Globals:
+#   Api:
+#     BinaryMediaTypes:
+#       - multipart/form-data
+#       - application/json
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  MyRbxApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: prod
+      CorsConfiguration:
+        AllowCredentials: true
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        ExposeHeaders:
+          - Content-Type
+          - Authorization
+        AllowMethods:
+          - GET
+          - POST
+        AllowOrigins:
+          - https://vs-sloboda.vercel.app
+          - http://localhost:8000
+          - https://vs-sloboda.vercel.app/
+          - http://localhost:8000/
+        MaxAge: 86400
+  TemplateObjectFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      Handler: main
+      Runtime: provided.al2023
+      # Runtime: go1.x
+      CodeUri: ./templater_function
+      Timeout: 20
+      MemorySize: 256
+      Layers:
+        # - !Ref TemplateFilesLayer
+        - arn:aws:lambda:eu-west-2:694952825951:layer:axiom-extension-x86_64:11
+      Environment:
+        Variables:
+          AXIOM_TOKEN: xaat-c8ad5247-0abb-4fe6-a653-e4ac68e5d61b
+          AXIOM_URL: https://api.axiom.co
+          AXIOM_ORG_ID: sketchforce-yr52
+          AXIOM_DATASET: sflambdas-logs
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            Path: /doTemplate
+            Method: post
+            ApiId: !Ref MyRbxApi
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref rbxm-templatedassets
+        - S3WritePolicy:
+            BucketName: !Ref rbxm-templatedassets
+      Role: !GetAtt LambdaExecutionRole.Arn
+  ReadAssetsFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      Handler: main
+      Runtime: provided.al2023
+      # Runtime: go1.x
+      CodeUri: ./data_function
+      Timeout: 20
+      MemorySize: 128
+      Layers:
+        - arn:aws:lambda:eu-west-2:694952825951:layer:axiom-extension-x86_64:11
+      Environment:
+        Variables:
+          AXIOM_TOKEN: xaat-c8ad5247-0abb-4fe6-a653-e4ac68e5d61b
+          AXIOM_URL: https://api.axiom.co
+          AXIOM_ORG_ID: sketchforce-yr52
+          AXIOM_DATASET: sflambdas-logs
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            Path: /getAssetsList
+            Method: get
+            ApiId: !Ref MyRbxApi
+      Role: !GetAtt LambdaExecutionRole.Arn
+  DownloaderFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      Handler: main
+      Runtime: provided.al2023
+      # Runtime: go1.x
+      CodeUri: ./downloader_function
+      Timeout: 20
+      MemorySize: 128
+      Layers:
+        - arn:aws:lambda:eu-west-2:694952825951:layer:axiom-extension-x86_64:11
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            Path: /getDownloadLink
+            Method: post
+            ApiId: !Ref MyRbxApi
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          AXIOM_TOKEN: xaat-c8ad5247-0abb-4fe6-a653-e4ac68e5d61b
+          AXIOM_URL: https://api.axiom.co
+          AXIOM_ORG_ID: sketchforce-yr52
+          AXIOM_DATASET: sflambdas-logs
+  FbxUploadFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      Handler: main
+      Runtime: provided.al2023
+      # Runtime: go1.x
+      CodeUri: ./fbx_upload
+      Timeout: 20
+      MemorySize: 128
+      Layers:
+        - arn:aws:lambda:eu-west-2:694952825951:layer:axiom-extension-x86_64:11
+      Environment:
+        Variables:
+          AXIOM_TOKEN: xaat-c8ad5247-0abb-4fe6-a653-e4ac68e5d61b
+          AXIOM_URL: https://api.axiom.co
+          AXIOM_ORG_ID: sketchforce-yr52
+          AXIOM_DATASET: sflambdas-logs
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            Path: /uploadFbx
+            Method: post
+            ApiId: !Ref MyRbxApi
+      Role: !GetAtt LambdaExecutionRole.Arn
+  BpyLambdaFunction:
+    Type: AWS::Serverless::Function 
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: ./bpy-lambda/bpy_lambda
+    Properties:
+      PackageType: Image
+      # ImageUri: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/sf-bpy-lambda:latest
+      ImageUri: 095320962381.dkr.ecr.eu-west-2.amazonaws.com/blender-lambda:latest
+      CodeUri: ./bpy-lambda
+      Architectures:
+        - x86_64
+      Timeout: 900
+      MemorySize: 1024
+      EphemeralStorage:
+        Size: 512
+      Environment:
+        Variables:
+          THUMBNAIL_BUCKET: sf-thumbnails
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          # AXIOM_TOKEN: xaat-feed1caf-44d5-4219-8166-298a8695ef02
+          AXIOM_TOKEN: xaat-c8ad5247-0abb-4fe6-a653-e4ac68e5d61b
+          AXIOM_URL: https://api.axiom.co
+          AXIOM_ORG_ID: sketchforce-yr52
+          AXIOM_DATASET: sflambdas-logs
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaS3AccessPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                #                  - s3:PutObjectAcl
+                Resource: arn:aws:s3:::rbxm-templatedassets/*
+        - PolicyName: LambdaGetDbSecretPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: arn:aws:secretsmanager:eu-west-2:095320962381:secret:neondbdev-PJT5qZ
+  TemplateFilesLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: template-files
+      Description: Template files subdirectory
+      ContentUri: ./templater_function/templates/
+      CompatibleRuntimes:
+        - provided.al2
+        - provided.al2023
+      LicenseInfo: ''
+      RetentionPolicy: Retain
