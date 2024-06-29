@@ -18,20 +18,19 @@ import (
 	adapter "github.com/axiomhq/axiom-go/adapters/slog"
 )
 
-const (
-)
-
 var (
-    serviceName  = os.Getenv("AXIOM_SERVICE_NAME")
-	bearerToken  = os.Getenv("AXIOM_TOKEN")
-	dataset      = os.Getenv("AXIOM_TRACES_DATASET") 
-	otlpEndpoint = os.Getenv("AXIOM_URL")
+	serviceName           = os.Getenv("AXIOM_SERVICE_NAME")
+	bearerToken           = os.Getenv("AXIOM_TOKEN")
+	dataset               = os.Getenv("AXIOM_TRACES_DATASET")
+	otlpEndpoint          = os.Getenv("AXIOM_OTLP_ENDPOINT")
 	serviceVersion        = os.Getenv("AXIOM_SERVICE_VERSION")
 	deploymentEnvironment = os.Getenv("AXIOM_ENVIRONMENT")
 )
 
-var tracer = otel.Tracer(serviceName)
-var Logger = *slog.Default()
+var (
+	tracer = otel.Tracer(serviceName)
+	Logger = *slog.Default()
+)
 
 // InitTracing initializes both OpenTelemetry tracing and Axiom logging
 func InitTracing(ctx context.Context, requestID, functionArn string) (func(context.Context) error, error) {
@@ -64,7 +63,7 @@ func InitTracing(ctx context.Context, requestID, functionArn string) (func(conte
 }
 
 func GetLogger() *slog.Logger {
-    return &Logger
+	return &Logger
 }
 
 // SetupTracer sets up the OpenTelemetry tracer
