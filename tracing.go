@@ -19,15 +19,15 @@ import (
 )
 
 const (
-	serviceName           = "axiom-go-otel"
-	serviceVersion        = "0.1.0"
-	deploymentEnvironment = "production"
 )
 
 var (
+    serviceName  = os.Getenv("AXIOM_SERVICE_NAME")
 	bearerToken  = os.Getenv("AXIOM_TOKEN")
-	dataset      = os.Getenv("AXIOM_DATASET")
+	dataset      = os.Getenv("AXIOM_TRACES_DATASET") 
 	otlpEndpoint = os.Getenv("AXIOM_URL")
+	serviceVersion        = os.Getenv("AXIOM_SERVICE_VERSION")
+	deploymentEnvironment = os.Getenv("AXIOM_ENVIRONMENT")
 )
 
 var tracer = otel.Tracer(serviceName)
@@ -51,6 +51,7 @@ func InitTracing(ctx context.Context, requestID, functionArn string) (func(conte
 		Logger.Error("Failed to initialize OpenTelemetry", "error", err)
 		return nil, err
 	}
+	Logger.Info("__ax-tracing otel tracer initialised__")
 
 	// Return a combined shutdown function
 	return func(shutdownCtx context.Context) error {
