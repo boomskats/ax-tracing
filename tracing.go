@@ -20,7 +20,7 @@ import (
 
 var (
 	serviceName           = os.Getenv("AXIOM_SERVICE_NAME")
-	bearerToken           = os.Getenv("AXIOM_TOKEN")
+    bearerToken           = "Bearer " + os.Getenv("AXIOM_TOKEN")
 	dataset               = os.Getenv("AXIOM_TRACES_DATASET")
 	otlpEndpoint          = os.Getenv("AXIOM_OTLP_ENDPOINT")
 	serviceVersion        = os.Getenv("AXIOM_SERVICE_VERSION")
