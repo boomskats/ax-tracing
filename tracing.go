@@ -31,6 +31,7 @@ var (
 )
 
 var tracer = otel.Tracer(serviceName)
+var Logger = *slog.Default()
 
 // InitTracing initializes both OpenTelemetry tracing and Axiom logging
 func InitTracing(ctx context.Context, requestID, functionArn string) (func(context.Context) error, error) {
@@ -40,25 +41,29 @@ func InitTracing(ctx context.Context, requestID, functionArn string) (func(conte
 		return nil, err
 	}
 
-	l := slog.New(lh).With("requestId", requestID).With("lambdaFunctionArn", functionArn)
-	slog.SetDefault(l)
-	l.Info("Starting up logger...")
+	Logger := slog.New(lh).With("requestId", requestID).With("lambdaFunctionArn", functionArn)
+	slog.SetDefault(Logger)
+	Logger.Info("__ax-tracing logger initialised__")
 
 	// Set up OpenTelemetry tracing
 	otelShutdown, err := SetupTracer()
 	if err != nil {
-		l.Error("Failed to initialize OpenTelemetry", "error", err)
+		Logger.Error("Failed to initialize OpenTelemetry", "error", err)
 		return nil, err
 	}
 
 	// Return a combined shutdown function
 	return func(shutdownCtx context.Context) error {
 		if err := otelShutdown(shutdownCtx); err != nil {
-			l.Error("Failed to shutdown OpenTelemetry", "error", err)
+			Logger.Error("Failed to shutdown OpenTelemetry", "error", err)
 		}
 		lh.Close()
 		return nil
 	}, nil
+}
+
+func GetLogger() *slog.Logger {
+    return &Logger
 }
 
 // SetupTracer sets up the OpenTelemetry tracer
