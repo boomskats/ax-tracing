@@ -8,38 +8,34 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-func handleRequest(ctx context.Context, event events.APIGatewayCustomAuthorizerRequest) (events.APIGatewayCustomAuthorizerResponse, error) {
-	token := strings.TrimPrefix(event.AuthorizationToken, "Bearer ")
+func handleRequest(ctx context.Context, event events.APIGatewayV2CustomAuthorizerV2Request) (events.APIGatewayV2CustomAuthorizerSimpleResponse, error) {
+	token := strings.TrimPrefix(event.Headers["authorization"], "Bearer ")
+
+    // if token is blank check the uppercased Authorization header 
+    if token == "" {
+        token = strings.TrimPrefix(event.Headers["Authorization"], "Bearer ")
+    }
+
+    // if token is still blank return unauthorized
+    if token == "" {
+        return events.APIGatewayV2CustomAuthorizerSimpleResponse{
+            IsAuthorized: false,
+        }, nil
+    }
 
 	userID, err := ValidateToken(token)
 	if err != nil {
-		return events.APIGatewayCustomAuthorizerResponse{}, err
+		return events.APIGatewayV2CustomAuthorizerSimpleResponse{
+			IsAuthorized: false,
+		}, nil
 	}
 
-	return generatePolicy(userID, "Allow", event.MethodArn, userID), nil
-}
-
-func generatePolicy(principalID, effect, resource, userId string) events.APIGatewayCustomAuthorizerResponse {
-	authResponse := events.APIGatewayCustomAuthorizerResponse{PrincipalID: principalID}
-
-	if effect != "" && resource != "" {
-		authResponse.PolicyDocument = events.APIGatewayCustomAuthorizerPolicy{
-			Version: "2012-10-17",
-			Statement: []events.IAMPolicyStatement{
-				{
-					Action:   []string{"execute-api:Invoke"},
-					Effect:   effect,
-					Resource: []string{resource},
-				},
-			},
-		}
-	}
-
-	authResponse.Context = map[string]interface{}{
-		"userId": userId,
-	}
-
-	return authResponse
+	return events.APIGatewayV2CustomAuthorizerSimpleResponse{
+		IsAuthorized: true,
+		Context: map[string]interface{}{
+			"userId": userID,
+		},
+	}, nil
 }
 
 func main() {

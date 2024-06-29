@@ -1,0 +1,49 @@
+{
+  "version": "2.0",
+  "type": "REQUEST",
+  "routeArn": "arn:aws:execute-api:eu-west-2:123456789012:abcdef123/prod/GET/",
+  "identitySource": [
+    "Bearer eyJhbGciOiJFUzI1NiIsImtpZCI6IlBOeHhpb2JFNE8zbGhQUUlUZG9QQ3FCTE81amh3aXZFS1pHOWhfTGJNOWMiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiI1NzQ1OTkzMjQ1IiwiYWlkIjoiM2Q0NWYzODYtNzVhZi00YzdlLTlmNDMtMjE1YzE3YjliOWQzIiwic2NvcGUiOiJhc3NldDpyZWFkLHdyaXRlIG9wZW5pZDpyZWFkIHByb2ZpbGU6cmVhZCIsImp0aSI6IkFULnpobWQtM3Zqb0ZPLUhqeDcyRVQ1IiwibmJmIjoxNzE5NjY4NTI5LCJleHAiOjE3MTk2Njk0MjksImlhdCI6MTcxOTY2ODUyOSwiaXNzIjoiaHR0cHM6Ly9hcGlzLnJvYmxveC5jb20vb2F1dGgvIiwiYXVkIjoiNzU4OTE5NjA0NzQ2NDA5OTUwMiJ9.vRH87Gz2sCvk7iXbeAV4IOK_7BDTvZY7YVByrdIgZJyF74bE3zILeK2SfqXYrxLcUmEqCOy0zbKqNfUn7YlSHw"
+  ],
+  "routeKey": "$default",
+  "rawPath": "/my/path",
+  "rawQueryString": "parameter1=value1&parameter1=value2&parameter2=value",
+  "cookies": [
+    "cookie1",
+    "cookie2"
+  ],
+  "headers": {
+    "Header1": "value1",
+    "Header2": "value2",
+    "authorization": "Bearer eyJhbGciOiJFUzI1NiIsImtpZCI6IlBOeHhpb2JFNE8zbGhQUUlUZG9QQ3FCTE81amh3aXZFS1pHOWhfTGJNOWMiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiI1NzQ1OTkzMjQ1IiwiYWlkIjoiM2Q0NWYzODYtNzVhZi00YzdlLTlmNDMtMjE1YzE3YjliOWQzIiwic2NvcGUiOiJhc3NldDpyZWFkLHdyaXRlIG9wZW5pZDpyZWFkIHByb2ZpbGU6cmVhZCIsImp0aSI6IkFULlJUQ1BLM1c4dlFabEpEbTFDU01UIiwibmJmIjoxNzE5NjcwMDU4LCJleHAiOjE3MTk2NzA5NTgsImlhdCI6MTcxOTY3MDA1OCwiaXNzIjoiaHR0cHM6Ly9hcGlzLnJvYmxveC5jb20vb2F1dGgvIiwiYXVkIjoiNzU4OTE5NjA0NzQ2NDA5OTUwMiJ9.AsJuuicJxGSGYCu3kcuazyrEaqRLsbfCMq8zlSAwP-7cbTtGbjr_lRBfNrOLFxpv01wvW1_TRY_PceEAW1u3ng"
+  },
+  "queryStringParameters": {
+    "parameter1": "value1,value2",
+    "parameter2": "value"
+  },
+  "requestContext": {
+    "accountId": "123456789012",
+    "apiId": "api-id",
+    "domainName": "id.execute-api.eu-west-2.amazonaws.com",
+    "domainPrefix": "id",
+    "http": {
+      "method": "GET",
+      "path": "/my/path",
+      "protocol": "HTTP/1.1",
+      "sourceIp": "IP",
+      "userAgent": "agent"
+    },
+    "requestId": "id",
+    "routeKey": "$default",
+    "stage": "prod",
+    "time": "12/Mar/2020:19:03:58 +0000",
+    "timeEpoch": 1583348638390
+  },
+  "pathParameters": {
+    "parameter1": "value1"
+  },
+  "stageVariables": {
+    "stageVariable1": "value1",
+    "stageVariable2": "value2"
+  }
+}
