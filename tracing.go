@@ -1,8 +1,12 @@
+// Package ax_tracing provies a simplified otel
+// initialization for Lambda functions, integrating
+// with Axiom for logging and tracing.
 package ax_tracing
 
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"log/slog"
 	"os"
 
@@ -18,77 +22,99 @@ import (
 	adapter "github.com/axiomhq/axiom-go/adapters/slog"
 )
 
-var (
-	serviceName           = os.Getenv("AXIOM_SERVICE_NAME")
-    bearerToken           = "Bearer " + os.Getenv("AXIOM_TOKEN")
-	dataset               = os.Getenv("AXIOM_TRACES_DATASET")
-	otlpEndpoint          = os.Getenv("AXIOM_OTLP_ENDPOINT")
-	serviceVersion        = os.Getenv("AXIOM_SERVICE_VERSION")
-	deploymentEnvironment = os.Getenv("AXIOM_ENVIRONMENT")
-)
+type Config struct {
+	ServiceName           string
+	BearerToken           string
+	Dataset               string
+	OTLPEndpoint          string
+	ServiceVersion        string
+	DeploymentEnvironment string
+}
+
+var config Config
 
 var (
-	tracer = otel.Tracer(serviceName)
+	ErrInitLogger = errors.New("failed to initialize logger")
+	ErrInitTracer = errors.New("failed to initialize OpenTelemetry tracer")
+
+	tracer trace.Tracer
 	Logger = *slog.Default()
 )
 
-// InitTracing initializes both OpenTelemetry tracing and Axiom logging
-func InitTracing(ctx context.Context, requestID, functionArn string) (func(context.Context) error, error) {
+func init() {
+	config = Config{
+		ServiceName:           os.Getenv("AXIOM_SERVICE_NAME"),
+		BearerToken:           "Bearer " + os.Getenv("AXIOM_TOKEN"),
+		Dataset:               os.Getenv("AXIOM_TRACES_DATASET"),
+		OTLPEndpoint:          os.Getenv("AXIOM_OTLP_ENDPOINT"),
+		ServiceVersion:        os.Getenv("AXIOM_SERVICE_VERSION"),
+		DeploymentEnvironment: os.Getenv("AXIOM_ENVIRONMENT"),
+	}
+}
+
+// InitTracing initializes OpenTelemetry tracer and
+// Axiom logging slog logger, and returns a combined
+// shutdown function and an error if init fails
+//
+// The shutdown function should be deferred in the
+// main function to ensure proper cleanup of resources
+func InitTracing(
+	ctx context.Context,
+	requestID, functionArn string,
+) (func(context.Context) error, error) {
 	// Set up Axiom logging
 	lh, err := adapter.New()
 	if err != nil {
 		return nil, err
 	}
 
-	Logger := slog.New(lh).With("requestId", requestID).With("lambdaFunctionArn", functionArn)
-	slog.SetDefault(Logger)
-	Logger.Info("__ax-tracing logger initialised__")
+	logger := slog.New(lh).With("requestId", requestID).With("lambdaFunctionArn", functionArn)
+	slog.SetDefault(logger)
+	slog.Debug("__ax-tracing logger initialised__")
 
 	// Set up OpenTelemetry tracing
-	otelShutdown, err := SetupTracer()
+	otelShutdown, err := installExportPipeline(ctx)
 	if err != nil {
-		Logger.Error("Failed to initialize OpenTelemetry", "error", err)
+		slog.Error("Failed to initialize OpenTelemetry", "error", err)
 		return nil, err
 	}
-	Logger.Info("__ax-tracing otel tracer initialised__")
+	Logger.Debug("__ax-tracing otel tracer initialised__")
 
 	// Return a combined shutdown function
 	return func(shutdownCtx context.Context) error {
 		if err := otelShutdown(shutdownCtx); err != nil {
-			Logger.Error("Failed to shutdown OpenTelemetry", "error", err)
+			slog.Error("Failed to shutdown OpenTelemetry", "error", err)
 		}
 		lh.Close()
+		slog.Debug("__ax-tracing logger shutdown__")
 		return nil
 	}, nil
 }
 
+// GetLogger returns the slog default logger.
+// It is probably not that useful given how 
+// the logger is initialised
 func GetLogger() *slog.Logger {
 	return &Logger
 }
 
-// SetupTracer sets up the OpenTelemetry tracer
-func SetupTracer() (func(context.Context) error, error) {
-	ctx := context.Background()
-	return InstallExportPipeline(ctx)
-}
-
-// Resource creates a new resource with service attributes
-func Resource() *resource.Resource {
+// createResource creates a new resource with service attributes
+func createResource() *resource.Resource {
 	return resource.NewWithAttributes(
 		semconv.SchemaURL,
-		semconv.ServiceNameKey.String(serviceName),
-		semconv.ServiceVersionKey.String(serviceVersion),
-		attribute.String("environment", deploymentEnvironment),
+		semconv.ServiceNameKey.String(config.ServiceName),
+		semconv.ServiceVersionKey.String(config.ServiceVersion),
+		attribute.String("environment", config.DeploymentEnvironment),
 	)
 }
 
-// InstallExportPipeline sets up the OpenTelemetry export pipeline
-func InstallExportPipeline(ctx context.Context) (func(context.Context) error, error) {
+// installExportPipeline sets up the OpenTelemetry export pipeline
+func installExportPipeline(ctx context.Context) (func(context.Context) error, error) {
 	exporter, err := otlptracehttp.New(ctx,
-		otlptracehttp.WithEndpoint(otlpEndpoint),
+		otlptracehttp.WithEndpoint(config.OTLPEndpoint),
 		otlptracehttp.WithHeaders(map[string]string{
-			"Authorization":   bearerToken,
-			"X-AXIOM-DATASET": dataset,
+			"Authorization":   config.BearerToken,
+			"X-AXIOM-DATASET": config.Dataset,
 		}),
 		otlptracehttp.WithTLSClientConfig(&tls.Config{}),
 	)
@@ -98,7 +124,7 @@ func InstallExportPipeline(ctx context.Context) (func(context.Context) error, er
 
 	tracerProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
-		sdktrace.WithResource(Resource()),
+		sdktrace.WithResource(createResource()),
 	)
 
 	otel.SetTracerProvider(tracerProvider)
@@ -107,7 +133,18 @@ func InstallExportPipeline(ctx context.Context) (func(context.Context) error, er
 		propagation.Baggage{},
 	))
 
-	return tracerProvider.Shutdown, nil
+	// Initialize the tracer after setting up the tracer provider
+	tracer = otel.GetTracerProvider().Tracer(config.ServiceName)
+
+	return func(shutdownCtx context.Context) error {
+		// Force flush any remaining spans
+		if err := tracerProvider.ForceFlush(shutdownCtx); err != nil {
+			slog.Error("Failed to shutdown OpenTelemetry", "error", err)
+			return err
+		}
+		slog.Error("__otel tracer flushed and shutdown__")
+		return tracerProvider.Shutdown(shutdownCtx)
+	}, nil
 }
 
 // StartSpan starts a new span and returns the context and span
