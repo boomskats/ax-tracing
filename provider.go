@@ -8,4 +8,3 @@ func (p *DefaultTracerProvider) SetupTracer() (func(context.Context) error, erro
 	ctx := context.Background()
 	return InstallExportPipeline(ctx)
 }
-

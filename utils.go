@@ -58,3 +58,13 @@ func InstallExportPipeline(ctx context.Context) (func(context.Context) error, er
 		return tracerProvider.Shutdown(shutdownCtx)
 	}, nil
 }
+
+type testModeKey struct{}
+
+func WithTestMode(ctx context.Context) context.Context {
+    return context.WithValue(ctx, testModeKey{}, true)
+}
+
+func IsTestMode(ctx context.Context) bool {
+    return ctx.Value(testModeKey{}) != nil
+}

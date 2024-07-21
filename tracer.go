@@ -17,7 +17,8 @@ type DefaultTracer struct {
 }
 
 // InitTracing initializes OpenTelemetry tracing and Axiom logging
-// and returns a shutdown function which should at least be deferred
+// and returns a shutdown function which should at least be deferred.
+
 func (t *DefaultTracer) InitTracing(
 	ctx context.Context,
 	requestID, functionArn string,
@@ -25,6 +26,17 @@ func (t *DefaultTracer) InitTracing(
 	func(context.Context) error,
 	error,
 ) {
+    // If this is running in test mode, then create a no-op logger
+    // and return a no-op shutdown function. 
+    if IsTestMode(ctx) {
+        t.logger = slog.Default()
+        t.logger.Info("__ax-tracing initialised in test mode__")
+        return func(context.Context) error {
+            t.logger.Info("__ax-tracing test mode shutdown__")
+            return nil
+        }, nil
+    }
+
 	// Set up Axiom logging
 	lh, err := adapter.New()
 	if err != nil {
@@ -113,3 +125,4 @@ func NewDefaultTracer() *DefaultTracer {
 		tracerProvider: &DefaultTracerProvider{},
 	}
 }
+
