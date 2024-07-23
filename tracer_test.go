@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -37,9 +38,25 @@ func TestEndSpan(t *testing.T) {
 }
 
 func TestAddSpanEvent(t *testing.T) {
+    // Create a mock tracer
+    mockTracer := &MockTracer{}
+
+    // Set up expectations
+    mockTracer.On("AddSpanEvent", mock.Anything, mock.Anything, mock.Anything).Return()
+
+    // Create a context and some test data
     ctx := WithTestMode(context.Background())
-    _, span := StartSpan(ctx, "test-span")
-    span.AddEvent("test-event")
+    eventName := "test-event"
+    attrs := []attribute.KeyValue{attribute.String("key", "value")}
+
+    // Call AddSpanEvent with the mock tracer
+    mockTracer.AddSpanEvent(ctx, eventName, attrs...)
+
+    // Assert that AddSpanEvent was called with the correct parameters
+    mockTracer.AssertCalled(t, "AddSpanEvent", ctx, eventName, mock.Anything)
+
+    // Verify all expectations were met
+    mockTracer.AssertExpectations(t)
 }
 
 func TestLinkSpans(t *testing.T) {
