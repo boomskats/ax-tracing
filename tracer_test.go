@@ -5,8 +5,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
-
 
 func TestInitTracing(t *testing.T) {
     ctx := WithTestMode(context.Background())
@@ -52,4 +53,68 @@ func TestNewDefaultTracer(t *testing.T) {
     assert.NotNil(t, tracer.tracerProvider)
     assert.NotNil(t, tracer.tracer)
     assert.NotNil(t, tracer.logger)
+}
+
+func TestDefaultTracer_InitTracing(t *testing.T) {
+	ctx := context.Background()
+	requestID := "test-request-id"
+	functionArn := "test-function-arn"
+
+	tracer := NewDefaultTracer()
+
+	shutdown, err := tracer.InitTracing(ctx, requestID, functionArn)
+	assert.NoError(t, err)
+	assert.NotNil(t, shutdown)
+
+	err = shutdown(ctx)
+	assert.NoError(t, err)
+}
+
+func TestDefaultTracer_GetLogger(t *testing.T) {
+	tracer := NewDefaultTracer()
+	logger := tracer.GetLogger()
+	assert.NotNil(t, logger)
+}
+
+func TestDefaultTracer_StartSpan(t *testing.T) {
+	tracer := NewDefaultTracer()
+	ctx := context.Background()
+	spanName := "test-span"
+
+	newCtx, span := tracer.StartSpan(ctx, spanName)
+	assert.NotNil(t, newCtx)
+	assert.NotNil(t, span)
+
+	tracer.EndSpan(span)
+}
+
+func TestDefaultTracer_AddSpanEvent(t *testing.T) {
+	tracer := NewDefaultTracer()
+	ctx := context.Background()
+	eventName := "test-event"
+	attr := attribute.String("key", "value")
+
+	_, span := tracer.StartSpan(ctx, "parent-span")
+	ctx = trace.ContextWithSpan(ctx, span)
+
+	tracer.AddSpanEvent(ctx, eventName, attr)
+
+	tracer.EndSpan(span)
+}
+
+func TestDefaultTracer_LinkSpans(t *testing.T) {
+	tracer := NewDefaultTracer()
+	ctx1 := context.Background()
+	ctx2 := context.Background()
+
+	_, span1 := tracer.StartSpan(ctx1, "span1")
+	ctx1 = trace.ContextWithSpan(ctx1, span1)
+
+	_, span2 := tracer.StartSpan(ctx2, "span2")
+	ctx2 = trace.ContextWithSpan(ctx2, span2)
+
+	tracer.LinkSpans(ctx1, ctx2)
+
+	tracer.EndSpan(span1)
+	tracer.EndSpan(span2)
 }

@@ -10,7 +10,7 @@ import (
 
 
 var (
-    defaultTracer = NewDefaultTracer()
+    defaultTracer Tracer = NewDefaultTracer()
 )
 
 func InitTracing(ctx context.Context, requestID, functionArn string) (func(context.Context) error, error) {

@@ -16,6 +16,8 @@ type DefaultTracer struct {
 	tracerProvider TracerProvider
 }
 
+var _ Tracer = (*DefaultTracer)(nil) // Ensure DefaultTracer implements Tracer interface
+
 // InitTracing initializes OpenTelemetry tracing and Axiom logging
 // and returns a shutdown function which should at least be deferred.
 
