@@ -80,6 +80,7 @@ func TestLinkSpans(t *testing.T) {
     mockTracer.AssertExpectations(t)
 }
 
+
 func TestNewDefaultTracer(t *testing.T) {
     tracer := NewDefaultTracer()
     assert.NotNil(t, tracer.tracerProvider)
