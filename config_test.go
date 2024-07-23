@@ -99,3 +99,66 @@ func TestGetEnv(t *testing.T) {
         })
     }
 }
+package ax_tracing
+
+import (
+	"os"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestGetEnv(t *testing.T) {
+	// Test when environment variable is set
+	os.Setenv("TEST_ENV_VAR", "test_value")
+	defer os.Unsetenv("TEST_ENV_VAR")
+
+	value := getEnv("TEST_ENV_VAR", "fallback")
+	assert.Equal(t, "test_value", value)
+
+	// Test when environment variable is not set
+	value = getEnv("NON_EXISTENT_VAR", "fallback")
+	assert.Equal(t, "fallback", value)
+}
+
+func TestConfigVariables(t *testing.T) {
+	// Test default values
+	assert.Equal(t, "default-ax-service", serviceName)
+	assert.Equal(t, "Bearer ", bearerToken)
+	assert.Equal(t, "", dataset)
+	assert.Equal(t, "", otlpEndpoint)
+	assert.Equal(t, "0.0.0", serviceVersion)
+	assert.Equal(t, "default-ax-environment", deploymentEnvironment)
+
+	// Set environment variables
+	os.Setenv("AXIOM_SERVICE_NAME", "test-service")
+	os.Setenv("AXIOM_TOKEN", "test-token")
+	os.Setenv("AXIOM_TRACES_DATASET", "test-dataset")
+	os.Setenv("AXIOM_OTLP_ENDPOINT", "test-endpoint")
+	os.Setenv("AXIOM_SERVICE_VERSION", "1.0.0")
+	os.Setenv("AXIOM_ENVIRONMENT", "test-environment")
+	defer func() {
+		os.Unsetenv("AXIOM_SERVICE_NAME")
+		os.Unsetenv("AXIOM_TOKEN")
+		os.Unsetenv("AXIOM_TRACES_DATASET")
+		os.Unsetenv("AXIOM_OTLP_ENDPOINT")
+		os.Unsetenv("AXIOM_SERVICE_VERSION")
+		os.Unsetenv("AXIOM_ENVIRONMENT")
+	}()
+
+	// Reinitialize variables
+	serviceName = getEnv("AXIOM_SERVICE_NAME", "default-ax-service")
+	bearerToken = "Bearer " + getEnv("AXIOM_TOKEN", "")
+	dataset = getEnv("AXIOM_TRACES_DATASET", "")
+	otlpEndpoint = getEnv("AXIOM_OTLP_ENDPOINT", "")
+	serviceVersion = getEnv("AXIOM_SERVICE_VERSION", "0.0.0")
+	deploymentEnvironment = getEnv("AXIOM_ENVIRONMENT", "default-ax-environment")
+
+	// Test new values
+	assert.Equal(t, "test-service", serviceName)
+	assert.Equal(t, "Bearer test-token", bearerToken)
+	assert.Equal(t, "test-dataset", dataset)
+	assert.Equal(t, "test-endpoint", otlpEndpoint)
+	assert.Equal(t, "1.0.0", serviceVersion)
+	assert.Equal(t, "test-environment", deploymentEnvironment)
+}
