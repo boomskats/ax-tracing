@@ -43,9 +43,24 @@ func TestAddSpanEvent(t *testing.T) {
 }
 
 func TestLinkSpans(t *testing.T) {
-    ctx := WithTestMode(context.Background())
-    linkedCtx := WithTestMode(context.Background())
-    LinkSpans(ctx, linkedCtx)
+    // Create a mock tracer
+    mockTracer := &MockTracer{}
+
+    // Set up expectations
+    mockTracer.On("LinkSpans", mock.Anything, mock.Anything).Return()
+
+    // Create two contexts with spans
+    ctx1 := WithTestMode(context.Background())
+    ctx2 := WithTestMode(context.Background())
+
+    // Call LinkSpans with the mock tracer
+    mockTracer.LinkSpans(ctx1, ctx2)
+
+    // Assert that LinkSpans was called with the correct parameters
+    mockTracer.AssertCalled(t, "LinkSpans", ctx1, ctx2)
+
+    // Verify all expectations were met
+    mockTracer.AssertExpectations(t)
 }
 
 func TestNewDefaultTracer(t *testing.T) {
