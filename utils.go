@@ -14,6 +14,10 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 )
 
+// Resource creates and returns a new resource with service and environment attributes.
+//
+// Returns:
+//   - A pointer to a resource.Resource with predefined attributes
 func Resource() *resource.Resource {
 	return resource.NewWithAttributes(
 		semconv.SchemaURL,
@@ -23,7 +27,17 @@ func Resource() *resource.Resource {
 	)
 }
 
-// InstallExportPipeline sets up the OpenTelemetry export pipeline
+// InstallExportPipeline sets up the OpenTelemetry export pipeline.
+//
+// It configures the OTLP HTTP exporter, creates a new TracerProvider with the exporter,
+// and sets up the global OpenTelemetry instance.
+//
+// Parameters:
+//   - ctx: The context for the operation
+//
+// Returns:
+//   - A shutdown function that should be called to clean up resources when tracing is no longer needed
+//   - An error if the setup fails
 func InstallExportPipeline(ctx context.Context) (func(context.Context) error, error) {
 	exporter, err := otlptracehttp.New(ctx,
 		otlptracehttp.WithEndpoint(otlpEndpoint),
@@ -61,10 +75,26 @@ func InstallExportPipeline(ctx context.Context) (func(context.Context) error, er
 
 type testModeKey struct{}
 
+// WithTestMode returns a new context with a test mode flag set.
+//
+// This function is used to create a context that indicates the code is running in test mode.
+//
+// Parameters:
+//   - ctx: The parent context
+//
+// Returns:
+//   - A new context with the test mode flag set
 func WithTestMode(ctx context.Context) context.Context {
     return context.WithValue(ctx, testModeKey{}, true)
 }
 
+// IsTestMode checks if the given context has the test mode flag set.
+//
+// Parameters:
+//   - ctx: The context to check
+//
+// Returns:
+//   - true if the context has the test mode flag set, false otherwise
 func IsTestMode(ctx context.Context) bool {
     return ctx.Value(testModeKey{}) != nil
 }

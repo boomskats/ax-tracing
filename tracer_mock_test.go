@@ -9,7 +9,21 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// MockTracer is a mock implementation of the Tracer interface
+// MockTracer is a mock implementation of the Tracer interface.
+// It can be used by both package consumers and package developers
+// to test code that depends on the Tracer interface without setting up
+// a real tracing infrastructure.
+//
+// Usage example:
+//
+//	func TestSomeFunctionUsingTracer(t *testing.T) {
+//		mockTracer := &MockTracer{}
+//		mockTracer.On("StartSpan", mock.Anything, "span-name").Return(context.Background(), &MockSpan{})
+//		
+//		// Use mockTracer in your test...
+//		
+//		mockTracer.AssertExpectations(t)
+//	}
 type MockTracer struct {
 	mock.Mock
 }

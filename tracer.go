@@ -18,9 +18,18 @@ type DefaultTracer struct {
 
 var _ Tracer = (*DefaultTracer)(nil) // Ensure DefaultTracer implements Tracer interface
 
-// InitTracing initializes OpenTelemetry tracing and Axiom logging
-// and returns a shutdown function which should at least be deferred.
-
+// InitTracing initializes OpenTelemetry tracing and Axiom logging.
+// It sets up the logger with the provided requestID and functionArn,
+// and initializes the OpenTelemetry tracer.
+//
+// Parameters:
+//   - ctx: The context for the operation
+//   - requestID: A unique identifier for the request
+//   - functionArn: The ARN of the Lambda function
+//
+// Returns:
+//   - A shutdown function that should be deferred to clean up resources
+//   - An error if initialization fails
 func (t *DefaultTracer) InitTracing(
 	ctx context.Context,
 	requestID, functionArn string,
@@ -74,28 +83,45 @@ func (t *DefaultTracer) InitTracing(
 	}, nil
 }
 
-// GetLogger returns the slog default logger. It
-// is probably not that useful given how the
-// logger is globally initialised
+// GetLogger returns the slog default logger.
+// Note: This may not be very useful as the logger is globally initialized.
+//
+// Returns:
+//   - The default slog.Logger
 func (t *DefaultTracer) GetLogger() *slog.Logger {
 	return t.logger
 }
 
-// StartSpan starts a new span and returns the context and span
+// StartSpan starts a new span and returns the updated context and the span.
+//
+// Parameters:
+//   - ctx: The parent context
+//   - name: The name of the span
+//
+// Returns:
+//   - The updated context containing the new span
+//   - The newly created span
 func (t *DefaultTracer) StartSpan(
 	ctx context.Context, name string,
 ) (context.Context, trace.Span) {
 	return t.tracer.Start(ctx, name)
 }
 
-// EndSpan ends the given span
+// EndSpan ends the given span.
+//
+// Parameters:
+//   - span: The span to end
 func (t *DefaultTracer) EndSpan(span trace.Span) {
 	span.End()
 }
 
-// AddSpanEvent adds an event to the current span and logs
-// the fact that it has added it. This is useful for
-// debugging but not much else.
+// AddSpanEvent adds an event to the current span and logs the fact that it has been added.
+// This can be useful for debugging purposes.
+//
+// Parameters:
+//   - ctx: The context containing the current span
+//   - name: The name of the event
+//   - attrs: Optional attributes to add to the event
 func (t *DefaultTracer) AddSpanEvent(
     ctx context.Context, 
     name string, 
@@ -108,7 +134,11 @@ func (t *DefaultTracer) AddSpanEvent(
         name, "attributes", attrs)
 }
 
-// LinkSpans creates a link between current span and provided context
+// LinkSpans creates a link between the current span and the span in the provided context.
+//
+// Parameters:
+//   - ctx: The context containing the current span
+//   - linkedCtx: The context containing the span to link to
 func (t *DefaultTracer) LinkSpans(
     ctx context.Context, 
     linkedCtx context.Context,
@@ -119,7 +149,10 @@ func (t *DefaultTracer) LinkSpans(
 	t.logger.InfoContext(ctx, "Spans linked")
 }
 
-// NewDefaultTracer creates a new default tracer
+// NewDefaultTracer creates and returns a new instance of DefaultTracer.
+//
+// Returns:
+//   - A pointer to a new DefaultTracer instance
 func NewDefaultTracer() *DefaultTracer {
 	return &DefaultTracer{
 		logger:         slog.Default(),

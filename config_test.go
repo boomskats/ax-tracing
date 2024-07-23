@@ -7,12 +7,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// envArg represents an environment variable with its name, value, and default value
 type envArg struct {
 	name   string
 	value  string
 	defval string
 }
 
+// envTests is a slice of test cases for environment variables
 type envTests []struct {
 	name     string
 	envs     envArg
@@ -20,6 +22,7 @@ type envTests []struct {
 	assert   assert.ComparisonAssertionFunc
 }
 
+// TestGetEnv tests the getEnv function with various environment variables
 func TestGetEnv(t *testing.T) {
     tests := envTests{
         {
@@ -84,11 +87,14 @@ func TestGetEnv(t *testing.T) {
         },
     }
      
-
+    // Iterate through all test cases
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
+            // Set the environment variable for the test
             os.Setenv(tt.envs.name, tt.envs.value)
+            // Get the value using getEnv
             actualValue := getEnv(tt.envs.name, tt.envs.defval)
+            // Assert that the actual value matches the expected value
             tt.assert(t, tt.expected, actualValue)
         })
     }
