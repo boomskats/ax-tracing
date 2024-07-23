@@ -24,7 +24,7 @@ func TestGetLogger(t *testing.T) {
 }
 
 func TestStartSpan(t *testing.T) {
-    ctx := context.Background()
+    ctx := WithTestMode(context.Background())
     name := "test-span"
     ctx, span := StartSpan(ctx, name)
     assert.NotNil(t, span)
@@ -37,14 +37,14 @@ func TestEndSpan(t *testing.T) {
 }
 
 func TestAddSpanEvent(t *testing.T) {
-    ctx := context.Background()
+    ctx := WithTestMode(context.Background())
     _, span := StartSpan(ctx, "test-span")
     span.AddEvent("test-event")
 }
 
 func TestLinkSpans(t *testing.T) {
-    ctx := context.Background()
-    linkedCtx := context.Background()
+    ctx := WithTestMode(context.Background())
+    linkedCtx := WithTestMode(context.Background())
     LinkSpans(ctx, linkedCtx)
 }
 
@@ -56,7 +56,7 @@ func TestNewDefaultTracer(t *testing.T) {
 }
 
 func TestDefaultTracer_InitTracing(t *testing.T) {
-	ctx := context.Background()
+	ctx := WithTestMode(context.Background())
 	requestID := "test-request-id"
 	functionArn := "test-function-arn"
 
@@ -78,7 +78,7 @@ func TestDefaultTracer_GetLogger(t *testing.T) {
 
 func TestDefaultTracer_StartSpan(t *testing.T) {
 	tracer := NewDefaultTracer()
-	ctx := context.Background()
+	ctx := WithTestMode(context.Background())
 	spanName := "test-span"
 
 	newCtx, span := tracer.StartSpan(ctx, spanName)
@@ -90,7 +90,7 @@ func TestDefaultTracer_StartSpan(t *testing.T) {
 
 func TestDefaultTracer_AddSpanEvent(t *testing.T) {
 	tracer := NewDefaultTracer()
-	ctx := context.Background()
+	ctx := WithTestMode(context.Background())
 	eventName := "test-event"
 	attr := attribute.String("key", "value")
 
@@ -104,8 +104,8 @@ func TestDefaultTracer_AddSpanEvent(t *testing.T) {
 
 func TestDefaultTracer_LinkSpans(t *testing.T) {
 	tracer := NewDefaultTracer()
-	ctx1 := context.Background()
-	ctx2 := context.Background()
+	ctx1 := WithTestMode(context.Background())
+	ctx2 := WithTestMode(context.Background())
 
 	_, span1 := tracer.StartSpan(ctx1, "span1")
 	ctx1 = trace.ContextWithSpan(ctx1, span1)
